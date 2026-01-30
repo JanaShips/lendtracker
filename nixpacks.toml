@@ -1,8 +1,8 @@
 [phases.setup]
-nixPkgs = ["jdk17", "maven"]
+nixPkgs = ["jdk17", "maven", "bash"]
 
 [phases.build]
-cmds = ["mvn clean package -DskipTests", "ls -la target/*.jar"]
+cmds = ["mvn clean package -DskipTests", "ls -la target/", "chmod +x start.sh"]
 
 [start]
-cmd = "java -Dserver.port=$PORT -Dspring.profiles.active=mysql -jar $(ls target/*.jar | grep -v original | head -1)"
+cmd = "bash start.sh"
