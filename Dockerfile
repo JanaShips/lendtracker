@@ -1,17 +1,16 @@
 # Build stage
-FROM eclipse-temurin:17-jdk-alpine AS build
+FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
-
-# Install Maven
-RUN apk add --no-cache maven
 
 # Copy pom.xml first for dependency caching
 COPY pom.xml .
 RUN mvn dependency:go-offline -B
 
-# Copy source code and build
-COPY src src
-RUN mvn clean package -DskipTests -Dmaven.test.skip=true -e
+# Copy ONLY main source code (no tests)
+COPY src/main src/main
+
+# Build without tests
+RUN mvn clean package -DskipTests -Dmaven.test.skip=true
 
 # Debug: list what was built
 RUN ls -la target/
