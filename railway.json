@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "java -Dserver.port=$PORT -Dspring.profiles.active=mysql -jar target/lendtracker-1.0.0.jar",
+    "startCommand": "java -Dserver.port=$PORT -Dspring.profiles.active=mysql -jar $(ls target/*.jar | head -1)",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
