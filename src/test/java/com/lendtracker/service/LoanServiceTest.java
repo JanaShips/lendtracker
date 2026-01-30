@@ -32,6 +32,9 @@ class LoanServiceTest {
     @Mock
     private PaymentHistoryRepository paymentHistoryRepository;
 
+    @Mock
+    private EmailService emailService;
+
     @InjectMocks
     private LoanService loanService;
 
