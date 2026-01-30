@@ -1,5 +1,6 @@
 package com.lendtracker.repository;
 
+import com.lendtracker.entity.Loan;
 import com.lendtracker.entity.PaymentHistory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -12,10 +13,10 @@ import java.util.List;
 @Repository
 public interface PaymentHistoryRepository extends JpaRepository<PaymentHistory, Long> {
 
-    List<PaymentHistory> findByLoanIdOrderByPaymentDateDesc(Long loanId);
+    List<PaymentHistory> findByLoanOrderByPaymentDateDesc(Loan loan);
 
-    List<PaymentHistory> findByLoanIdAndPaymentTypeOrderByPaymentDateDesc(
-            Long loanId, PaymentHistory.PaymentType paymentType);
+    List<PaymentHistory> findByLoanAndPaymentTypeOrderByPaymentDateDesc(
+            Loan loan, PaymentHistory.PaymentType paymentType);
 
     @Query("SELECT ph FROM PaymentHistory ph WHERE ph.loan.id = :loanId ORDER BY ph.paymentDate DESC, ph.createdAt DESC")
     List<PaymentHistory> findAllByLoanId(@Param("loanId") Long loanId);
@@ -23,6 +24,8 @@ public interface PaymentHistoryRepository extends JpaRepository<PaymentHistory, 
     @Modifying
     @Query("DELETE FROM PaymentHistory ph WHERE ph.loan.id = :loanId")
     void deleteByLoanId(@Param("loanId") Long loanId);
+    
+    void deleteByLoan(Loan loan);
 }
 
 

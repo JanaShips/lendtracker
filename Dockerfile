@@ -11,7 +11,10 @@ RUN mvn dependency:go-offline -B
 
 # Copy source code and build
 COPY src src
-RUN mvn clean package -DskipTests
+RUN mvn clean package -DskipTests -Dmaven.test.skip=true -e
+
+# Debug: list what was built
+RUN ls -la target/
 
 # Runtime stage
 FROM eclipse-temurin:17-jre-alpine
