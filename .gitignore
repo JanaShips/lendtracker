@@ -1,0 +1,95 @@
+# ============================================
+# LendTracker .gitignore
+# ============================================
+
+# ============================================
+# Java / Maven
+# ============================================
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ============================================
+# IDE
+# ============================================
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+*.swp
+*.swo
+.project
+.classpath
+.settings/
+
+# ============================================
+# OS Files
+# ============================================
+.DS_Store
+Thumbs.db
+*.log
+
+# ============================================
+# Environment & Secrets
+# ============================================
+.env
+.env.local
+.env.production
+.env.*.local
+*.env
+!production.env
+!env.example
+
+# ============================================
+# Node / Frontend
+# ============================================
+lendtracker-ui/node_modules/
+lendtracker-ui/dist/
+lendtracker-ui/.env
+lendtracker-ui/.env.production
+lendtracker-ui/.env.local
+
+# ============================================
+# Android Build
+# ============================================
+lendtracker-ui/android/.gradle/
+lendtracker-ui/android/app/build/
+lendtracker-ui/android/build/
+lendtracker-ui/android/capacitor-cordova-android-plugins/build/
+lendtracker-ui/android/local.properties
+lendtracker-ui/android/keystore.properties
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# ============================================
+# iOS Build
+# ============================================
+lendtracker-ui/ios/App/Pods/
+lendtracker-ui/ios/App/build/
+*.xcworkspace
+*.xcuserdata
+
+# ============================================
+# Capacitor
+# ============================================
+lendtracker-ui/android/
+lendtracker-ui/ios/
+
+# ============================================
+# Logs
+# ============================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ============================================
+# Database
+# ============================================
+*.db
+*.sqlite

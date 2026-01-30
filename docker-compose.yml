@@ -1,0 +1,108 @@
+# ============================================
+# LendTracker - Docker Compose Production Setup
+# ============================================
+# Usage: docker-compose up -d
+# ============================================
+
+version: '3.8'
+
+services:
+  # ============================================
+  # Backend API
+  # ============================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lendtracker-api
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    environment:
+      # Profile
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
+      
+      # Database (MySQL)
+      - DATABASE_URL=${DATABASE_URL:-}
+      - DB_HOST=${DB_HOST:-mysql}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_NAME=${DB_NAME:-lendtracker}
+      - DB_USERNAME=${DB_USERNAME:-lendtracker}
+      - DB_PASSWORD=${DB_PASSWORD:-}
+      
+      # JWT
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-604800000}
+      
+      # Email
+      - MAIL_HOST=${MAIL_HOST:-smtp.gmail.com}
+      - MAIL_PORT=${MAIL_PORT:-587}
+      - MAIL_USERNAME=${MAIL_USERNAME:-}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-}
+      
+      # App
+      - APP_BASE_URL=${APP_BASE_URL:-http://localhost:5173}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - lendtracker-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ============================================
+  # MySQL Database
+  # ============================================
+  mysql:
+    image: mysql:8.0
+    container_name: lendtracker-mysql
+    restart: unless-stopped
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+      - MYSQL_DATABASE=${DB_NAME:-lendtracker}
+      - MYSQL_USER=${DB_USERNAME:-lendtracker}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - lendtracker-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ============================================
+  # Frontend (Nginx)
+  # ============================================
+  frontend:
+    build:
+      context: ./lendtracker-ui
+      dockerfile: Dockerfile
+    container_name: lendtracker-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+      - "${FRONTEND_SSL_PORT:-443}:443"
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-/api}
+    depends_on:
+      - backend
+    networks:
+      - lendtracker-network
+
+networks:
+  lendtracker-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
