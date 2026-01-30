@@ -2,6 +2,7 @@ package com.lendtracker.repository;
 
 import com.lendtracker.entity.PaymentHistory;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -19,7 +20,9 @@ public interface PaymentHistoryRepository extends JpaRepository<PaymentHistory, 
     @Query("SELECT ph FROM PaymentHistory ph WHERE ph.loan.id = :loanId ORDER BY ph.paymentDate DESC, ph.createdAt DESC")
     List<PaymentHistory> findAllByLoanId(@Param("loanId") Long loanId);
 
-    void deleteByLoanId(Long loanId);
+    @Modifying
+    @Query("DELETE FROM PaymentHistory ph WHERE ph.loan.id = :loanId")
+    void deleteByLoanId(@Param("loanId") Long loanId);
 }
 
 
