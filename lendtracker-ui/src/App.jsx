@@ -590,6 +590,32 @@ function useTranslation() {
 // ============================================
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
 
+// Debug: Log API URL on app start (helpful for debugging Android builds)
+if (import.meta.env.DEV || window.location.hostname !== 'localhost') {
+  console.log('[LendTracker] API URL:', API_BASE)
+}
+
+// Helper function to handle API requests with better error messages
+async function apiRequest(url, options = {}) {
+  try {
+    const res = await fetch(url, options)
+    const data = await res.json()
+    return data
+  } catch (error) {
+    // Network error - provide helpful message for debugging
+    console.error('[LendTracker] API Error:', error.message, 'URL:', url)
+    
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      // Check if it's likely a localhost issue on mobile
+      if (API_BASE.includes('localhost')) {
+        throw new Error('Cannot connect to server. The app is configured for localhost which does not work on mobile devices. Please rebuild with correct VITE_API_URL.')
+      }
+      throw new Error('Unable to connect to server. Please check your internet connection.')
+    }
+    throw error
+  }
+}
+
 // API Functions with Auth
 function createApi(token) {
   const headers = {
@@ -600,55 +626,48 @@ function createApi(token) {
   return {
     // Auth endpoints
     register: async (data) => {
-      const res = await fetch(`${API_BASE}/auth/register`, {
+      return apiRequest(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       })
-      return res.json()
     },
     login: async (data) => {
-      const res = await fetch(`${API_BASE}/auth/login`, {
+      return apiRequest(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       })
-      return res.json()
     },
     forgotPassword: async (email) => {
-      const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+      return apiRequest(`${API_BASE}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
       })
-      return res.json()
     },
     validateResetToken: async (token) => {
-      const res = await fetch(`${API_BASE}/auth/validate-reset-token?token=${encodeURIComponent(token)}`)
-      return res.json()
+      return apiRequest(`${API_BASE}/auth/validate-reset-token?token=${encodeURIComponent(token)}`)
     },
     resetPassword: async (token, newPassword) => {
-      const res = await fetch(`${API_BASE}/auth/reset-password`, {
+      return apiRequest(`${API_BASE}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword })
       })
-      return res.json()
     },
     verifyEmail: async (email, otp) => {
-      const res = await fetch(`${API_BASE}/auth/verify-email`, {
+      return apiRequest(`${API_BASE}/auth/verify-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp })
       })
-      return res.json()
     },
     sendVerificationOtp: async () => {
-      const res = await fetch(`${API_BASE}/auth/send-verification-otp`, {
+      return apiRequest(`${API_BASE}/auth/send-verification-otp`, {
         method: 'POST',
         headers
       })
-      return res.json()
     },
     // Loan endpoints
   getLoans: async () => {
@@ -1137,7 +1156,8 @@ function RegisterPage({ onSwitchToLogin, onRegisterSuccess }) {
         setError(response.message || 'Registration failed. Please try again.')
       }
     } catch (err) {
-      setError('Unable to connect to server. Please try again.')
+      console.error('[LendTracker] Registration error:', err)
+      setError(err.message || 'Unable to connect to server. Please check your internet connection.')
     } finally {
       setLoading(false)
     }
