@@ -2,6 +2,29 @@
 
 This guide will help you build the LendTracker Android APK.
 
+## ⚠️ IMPORTANT: Configure API URL Before Building
+
+Before building the APK, you **MUST** configure the backend API URL:
+
+1. Copy the example file: `cp .env.production.example .env.production`
+2. Open `.env.production` and replace `YOUR-RAILWAY-BACKEND-URL` with your actual Railway backend URL:
+
+```bash
+# Example - replace with your actual Railway URL:
+VITE_API_URL=https://lendtracker-production-xxxx.up.railway.app/api
+```
+
+### How to Find Your Railway Backend URL:
+1. Go to [Railway Dashboard](https://railway.app/dashboard)
+2. Click on your LendTracker backend service
+3. Go to **Settings** → **Networking** → **Public Networking**
+4. Copy your domain (e.g., `lendtracker-production-xxxx.up.railway.app`)
+5. Add `/api` at the end
+
+**If you skip this step, the APK will try to connect to `localhost` which won't work on your phone!**
+
+---
+
 ## Prerequisites
 
 ### 1. Install Android Studio
@@ -34,16 +57,28 @@ sdkmanager --licenses
 
 ## Building the APK
 
+### ✅ Pre-Build Checklist
+1. Ensure `.env.production` has the correct `VITE_API_URL` (your Railway backend URL)
+2. Run `npm run build` to create the production build
+3. Run `npx cap sync android` to sync changes to Android
+
 ### Option 1: Using Android Studio (Recommended)
 
-1. Open Android Studio
-2. Click "Open" and navigate to:
+1. **First, build the web app with production settings:**
+   ```powershell
+   cd lendtracker-ui
+   npm run build
+   npx cap sync android
    ```
-   C:\Users\janardko\Desktop\Cursor\LendTracker\lendtracker-ui\android
+
+2. Open Android Studio
+3. Click "Open" and navigate to:
    ```
-3. Wait for Gradle sync to complete
-4. Go to **Build** → **Build Bundle(s) / APK(s)** → **Build APK(s)**
-5. The APK will be generated at:
+   lendtracker-ui/android
+   ```
+4. Wait for Gradle sync to complete
+5. Go to **Build** → **Build Bundle(s) / APK(s)** → **Build APK(s)**
+6. The APK will be generated at:
    ```
    android/app/build/outputs/apk/debug/app-debug.apk
    ```
@@ -51,17 +86,22 @@ sdkmanager --licenses
 ### Option 2: Using Command Line
 
 1. Open PowerShell in the `lendtracker-ui` directory
-2. Set environment variables:
+2. **Build the web app first:**
+   ```powershell
+   npm run build
+   npx cap sync android
+   ```
+3. Set environment variables:
    ```powershell
    $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
    $env:JAVA_HOME = "C:\Program Files\Java\jdk-17"
    ```
-3. Navigate to android folder and build:
+4. Navigate to android folder and build:
    ```powershell
    cd android
    .\gradlew.bat assembleDebug
    ```
-4. The APK will be at: `android/app/build/outputs/apk/debug/app-debug.apk`
+5. The APK will be at: `android/app/build/outputs/apk/debug/app-debug.apk`
 
 ### Building a Release APK (For Distribution)
 
@@ -93,6 +133,9 @@ For a release APK, you need to sign it:
 ```powershell
 # From lendtracker-ui directory:
 
+# ⭐ COMPLETE REBUILD (use this after changing .env.production):
+npm run build && npx cap sync android && cd android && .\gradlew.bat assembleDebug
+
 # Build web app
 npm run build
 
@@ -112,7 +155,48 @@ cd android; .\gradlew.bat assembleRelease
 cd android; .\gradlew.bat clean
 ```
 
+## Quick Fix for "Unable to Connect" Error
+
+If you're seeing connection errors on your Android app, run these commands:
+
+```powershell
+# 1. Create .env.production from example (if not exists)
+copy .env.production.example .env.production
+
+# 2. Edit .env.production with your Railway URL
+notepad .env.production
+# Change: VITE_API_URL=https://YOUR-ACTUAL-RAILWAY-URL.up.railway.app/api
+
+# 3. Rebuild and sync
+npm run build
+npx cap sync android
+
+# 4. Rebuild APK
+cd android
+.\gradlew.bat clean assembleDebug
+
+# 5. Install new APK on phone
+# The APK is at: android/app/build/outputs/apk/debug/app-debug.apk
+```
+
 ## Troubleshooting
+
+### "Unable to connect to server" or "Network Error" on Sign Up/Login
+**This is the most common issue!** It means the app is trying to connect to `localhost` instead of your Railway backend.
+
+**Solution:**
+1. Check `.env.production` has the correct Railway URL:
+   ```
+   VITE_API_URL=https://YOUR-RAILWAY-APP.up.railway.app/api
+   ```
+2. Rebuild the web app: `npm run build`
+3. Sync to Android: `npx cap sync android`
+4. Rebuild the APK
+
+**To verify the URL is correct:**
+- Connect your phone to your computer
+- Open Chrome DevTools Remote Debugging
+- Check the console for: `[LendTracker] API URL: https://...`
 
 ### "SDK location not found"
 - Install Android Studio and Android SDK
@@ -128,6 +212,11 @@ cd android; .\gradlew.bat clean
 ### App crashes on launch
 - Check logcat in Android Studio for errors
 - Ensure the backend API URL is correctly configured
+
+### CORS Errors
+If you see CORS errors in the logs:
+- Make sure your Railway backend has CORS configured to allow all origins
+- The backend's `SecurityConfig.java` should have `setAllowedOriginPatterns(List.of("*"))`
 
 ## App Configuration
 
