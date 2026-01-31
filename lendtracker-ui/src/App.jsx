@@ -12,7 +12,7 @@ import {
   User, Mail, Phone, ArrowRight, ArrowLeft, Sparkles, Shield, KeyRound,
   Settings, Save, RefreshCw, Palette, Bell, Download, Send,
   FileText, FileSpreadsheet, Printer, Filter, ShieldCheck, Activity,
-  UserCheck, UserX, Crown, BarChart3
+  UserCheck, UserX, Crown, BarChart3, WifiOff, Wifi
 } from 'lucide-react'
 
 // ============================================
@@ -590,6 +590,115 @@ function useTranslation() {
 // ============================================
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
 
+// Connection error types for better error handling
+const CONNECTION_ERROR_TYPES = {
+  TIMEOUT: 'TIMEOUT',
+  NETWORK: 'NETWORK',
+  SERVER: 'SERVER',
+  UNKNOWN: 'UNKNOWN'
+}
+
+// Custom error class for API errors
+class ApiError extends Error {
+  constructor(message, type, status = null) {
+    super(message)
+    this.name = 'ApiError'
+    this.type = type
+    this.status = status
+  }
+}
+
+// Fetch with timeout support
+async function fetchWithTimeout(url, options = {}, timeout = 15000) {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeout)
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    })
+    clearTimeout(timeoutId)
+    return response
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error.name === 'AbortError') {
+      throw new ApiError('Request timed out. Please check your connection.', CONNECTION_ERROR_TYPES.TIMEOUT)
+    }
+    throw error
+  }
+}
+
+// Fetch with retry and exponential backoff
+async function fetchWithRetry(url, options = {}, { maxRetries = 3, timeout = 15000, retryDelay = 1000 } = {}) {
+  let lastError
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetchWithTimeout(url, options, timeout)
+      
+      // Check for server errors that might be worth retrying
+      if (response.status >= 500 && attempt < maxRetries) {
+        throw new ApiError(`Server error (${response.status})`, CONNECTION_ERROR_TYPES.SERVER, response.status)
+      }
+      
+      return response
+    } catch (error) {
+      lastError = error
+      
+      // Don't retry on client errors (4xx) or if we've exhausted retries
+      if (error instanceof ApiError && error.type === CONNECTION_ERROR_TYPES.TIMEOUT) {
+        // Timeout errors are worth retrying
+        console.log(`Request timeout, attempt ${attempt + 1}/${maxRetries + 1}`)
+      } else if (error.name === 'TypeError' || error.message?.includes('fetch')) {
+        // Network errors (no internet, DNS issues, etc.)
+        console.log(`Network error, attempt ${attempt + 1}/${maxRetries + 1}`)
+      } else if (error instanceof ApiError && error.type === CONNECTION_ERROR_TYPES.SERVER) {
+        // Server errors (5xx)
+        console.log(`Server error, attempt ${attempt + 1}/${maxRetries + 1}`)
+      } else {
+        // Don't retry for other errors
+        throw error
+      }
+      
+      // Wait before retrying (exponential backoff)
+      if (attempt < maxRetries) {
+        const delay = retryDelay * Math.pow(2, attempt)
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+    }
+  }
+  
+  // Convert the last error to a user-friendly ApiError
+  if (lastError instanceof ApiError) {
+    throw lastError
+  } else if (lastError.name === 'TypeError' || lastError.message?.includes('fetch')) {
+    throw new ApiError(
+      'Unable to connect to server. Please check your internet connection.',
+      CONNECTION_ERROR_TYPES.NETWORK
+    )
+  } else {
+    throw new ApiError(
+      'An unexpected error occurred. Please try again.',
+      CONNECTION_ERROR_TYPES.UNKNOWN
+    )
+  }
+}
+
+// Helper to get user-friendly error message
+function getErrorMessage(error) {
+  if (error instanceof ApiError) {
+    return error.message
+  }
+  if (error.name === 'TypeError' || error.message?.includes('fetch') || error.message?.includes('network')) {
+    return 'Unable to connect to server. Please check your internet connection.'
+  }
+  if (error.message?.includes('timeout') || error.message?.includes('Timeout')) {
+    return 'Request timed out. Server may be busy, please try again.'
+  }
+  return error.message || 'An unexpected error occurred. Please try again.'
+}
+
 // API Functions with Auth
 function createApi(token) {
   const headers = {
@@ -597,10 +706,16 @@ function createApi(token) {
     ...(token && { 'Authorization': `Bearer ${token}` })
   }
 
+  // Helper for making API requests with retry logic
+  const apiRequest = async (url, options = {}, skipRetry = false) => {
+    const fetchFn = skipRetry ? fetchWithTimeout : fetchWithRetry
+    return fetchFn(url, { ...options }, skipRetry ? 15000 : undefined)
+  }
+
   return {
-    // Auth endpoints
+    // Auth endpoints (no retry for auth to avoid duplicate submissions)
     register: async (data) => {
-      const res = await fetch(`${API_BASE}/auth/register`, {
+      const res = await fetchWithTimeout(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -608,7 +723,7 @@ function createApi(token) {
       return res.json()
     },
     login: async (data) => {
-      const res = await fetch(`${API_BASE}/auth/login`, {
+      const res = await fetchWithTimeout(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -616,7 +731,7 @@ function createApi(token) {
       return res.json()
     },
     forgotPassword: async (email) => {
-      const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+      const res = await fetchWithTimeout(`${API_BASE}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -624,11 +739,11 @@ function createApi(token) {
       return res.json()
     },
     validateResetToken: async (token) => {
-      const res = await fetch(`${API_BASE}/auth/validate-reset-token?token=${encodeURIComponent(token)}`)
+      const res = await fetchWithRetry(`${API_BASE}/auth/validate-reset-token?token=${encodeURIComponent(token)}`)
       return res.json()
     },
     resetPassword: async (token, newPassword) => {
-      const res = await fetch(`${API_BASE}/auth/reset-password`, {
+      const res = await fetchWithTimeout(`${API_BASE}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword })
@@ -636,7 +751,7 @@ function createApi(token) {
       return res.json()
     },
     verifyEmail: async (email, otp) => {
-      const res = await fetch(`${API_BASE}/auth/verify-email`, {
+      const res = await fetchWithTimeout(`${API_BASE}/auth/verify-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp })
@@ -644,15 +759,15 @@ function createApi(token) {
       return res.json()
     },
     sendVerificationOtp: async () => {
-      const res = await fetch(`${API_BASE}/auth/send-verification-otp`, {
+      const res = await fetchWithTimeout(`${API_BASE}/auth/send-verification-otp`, {
         method: 'POST',
         headers
       })
       return res.json()
     },
-    // Loan endpoints
+    // Loan endpoints (with retry for GET requests)
   getLoans: async () => {
-      const res = await fetch(`${API_BASE}/loans`, { headers })
+      const res = await fetchWithRetry(`${API_BASE}/loans`, { headers })
       if (!res.ok) throw new Error('Failed to fetch loans')
       return res.json()
     },
@@ -670,22 +785,22 @@ function createApi(token) {
       
       const queryString = queryParams.toString()
       const url = `${API_BASE}/loans/search${queryString ? '?' + queryString : ''}`
-      const res = await fetch(url, { headers })
+      const res = await fetchWithRetry(url, { headers })
       if (!res.ok) throw new Error('Failed to search loans')
       return res.json()
     },
     getFilterCounts: async () => {
-      const res = await fetch(`${API_BASE}/loans/filter-counts`, { headers })
+      const res = await fetchWithRetry(`${API_BASE}/loans/filter-counts`, { headers })
       if (!res.ok) throw new Error('Failed to get filter counts')
       return res.json()
   },
   getDashboard: async () => {
-      const res = await fetch(`${API_BASE}/loans/dashboard`, { headers })
+      const res = await fetchWithRetry(`${API_BASE}/loans/dashboard`, { headers })
       if (!res.ok) throw new Error('Failed to fetch dashboard')
       return res.json()
   },
   createLoan: async (loan) => {
-      const res = await fetch(`${API_BASE}/loans`, {
+      const res = await fetchWithTimeout(`${API_BASE}/loans`, {
         method: 'POST',
         headers,
         body: JSON.stringify(loan)
@@ -694,7 +809,7 @@ function createApi(token) {
       return res.json()
   },
   updateLoan: async (id, loan) => {
-      const res = await fetch(`${API_BASE}/loans/${id}`, {
+      const res = await fetchWithTimeout(`${API_BASE}/loans/${id}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(loan)
@@ -703,14 +818,14 @@ function createApi(token) {
       return res.json()
   },
   deleteLoan: async (id) => {
-      const res = await fetch(`${API_BASE}/loans/${id}`, {
+      const res = await fetchWithTimeout(`${API_BASE}/loans/${id}`, {
         method: 'DELETE',
         headers
       })
       if (!res.ok) throw new Error('Failed to delete loan')
   },
   receiveInterest: async (id, amount, paymentDate, notes) => {
-      const res = await fetch(`${API_BASE}/loans/${id}/receive-interest`, {
+      const res = await fetchWithTimeout(`${API_BASE}/loans/${id}/receive-interest`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ amount, paymentDate, notes })
@@ -719,7 +834,7 @@ function createApi(token) {
       return res.json()
   },
   receivePrincipal: async (id, amount, paymentDate, notes) => {
-      const res = await fetch(`${API_BASE}/loans/${id}/receive-principal`, {
+      const res = await fetchWithTimeout(`${API_BASE}/loans/${id}/receive-principal`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ amount, paymentDate, notes })
@@ -728,70 +843,81 @@ function createApi(token) {
       return res.json()
   },
   getPaymentHistory: async (loanId) => {
-      const res = await fetch(`${API_BASE}/loans/${loanId}/payment-history`, { headers })
+      const res = await fetchWithRetry(`${API_BASE}/loans/${loanId}/payment-history`, { headers })
       if (!res.ok) throw new Error('Failed to fetch payment history')
       return res.json()
   },
   getAllPaymentHistory: async () => {
-      const res = await fetch(`${API_BASE}/loans/payment-history/all`, { headers })
+      const res = await fetchWithRetry(`${API_BASE}/loans/payment-history/all`, { headers })
       if (!res.ok) throw new Error('Failed to fetch payment history')
       return res.json()
     },
     calculateInterest: async (principal, interestRate, frequency, days) => {
-      const params = new URLSearchParams({ principal, interestRate, frequency, days })
-      const res = await fetch(`${API_BASE}/loans/calculate-interest?${params}`, { headers })
-      if (!res.ok) {
-        // Fallback to local calculation
-      const annualRate = interestRate / 100
-      const yearlyInterest = principal * annualRate
-      const monthlyInterest = yearlyInterest / 12
-      const dailyInterest = yearlyInterest / 365
-      
-      const perPaymentInterest = {
-        DAILY: dailyInterest,
+      // Helper function for local calculation fallback
+      const calculateLocally = () => {
+        const annualRate = interestRate / 100
+        const yearlyInterest = principal * annualRate
+        const monthlyInterest = yearlyInterest / 12
+        const dailyInterest = yearlyInterest / 365
+        
+        const perPaymentInterest = {
+          DAILY: dailyInterest,
           WEEKLY: yearlyInterest / 52,
           BIWEEKLY: yearlyInterest / 26,
-        MONTHLY: monthlyInterest,
-        QUARTERLY: monthlyInterest * 3,
-        YEARLY: yearlyInterest
-      }[frequency] || monthlyInterest
-      
+          MONTHLY: monthlyInterest,
+          QUARTERLY: monthlyInterest * 3,
+          YEARLY: yearlyInterest
+        }[frequency] || monthlyInterest
+        
         const months = Math.ceil(days / 30)
         const totalInterest = monthlyInterest * months
-      
-      return {
-        principal,
-        interestRate,
-        frequency,
+        
+        return {
+          principal,
+          interestRate,
+          frequency,
           durationMonths: months,
-        dailyInterest: Math.round(dailyInterest * 100) / 100,
-        monthlyInterest: Math.round(monthlyInterest * 100) / 100,
-        yearlyInterest: Math.round(yearlyInterest * 100) / 100,
-        perPaymentInterest: Math.round(perPaymentInterest * 100) / 100,
-        totalInterest: Math.round(totalInterest * 100) / 100,
-        totalAmount: Math.round((principal + totalInterest) * 100) / 100
+          dailyInterest: Math.round(dailyInterest * 100) / 100,
+          monthlyInterest: Math.round(monthlyInterest * 100) / 100,
+          yearlyInterest: Math.round(yearlyInterest * 100) / 100,
+          perPaymentInterest: Math.round(perPaymentInterest * 100) / 100,
+          totalInterest: Math.round(totalInterest * 100) / 100,
+          totalAmount: Math.round((principal + totalInterest) * 100) / 100
+        }
       }
+
+      try {
+        const params = new URLSearchParams({ principal, interestRate, frequency, days })
+        const res = await fetchWithRetry(`${API_BASE}/loans/calculate-interest?${params}`, { headers })
+        if (!res.ok) {
+          // Fallback to local calculation on server error
+          return calculateLocally()
+        }
+        return res.json()
+      } catch (err) {
+        // Fallback to local calculation on network error
+        console.log('Using local calculation due to connection issue:', err.message)
+        return calculateLocally()
       }
-      return res.json()
     },
     // ==================== ADMIN API ====================
     adminGetUsers: async () => {
-      const res = await fetch(`${API_BASE}/admin/users`, { headers })
+      const res = await fetchWithRetry(`${API_BASE}/admin/users`, { headers })
       if (!res.ok) throw new Error('Failed to fetch users')
       return res.json()
     },
     adminGetStats: async () => {
-      const res = await fetch(`${API_BASE}/admin/stats`, { headers })
+      const res = await fetchWithRetry(`${API_BASE}/admin/stats`, { headers })
       if (!res.ok) throw new Error('Failed to fetch stats')
       return res.json()
     },
     adminGetActivity: async (limit = 20) => {
-      const res = await fetch(`${API_BASE}/admin/activity?limit=${limit}`, { headers })
+      const res = await fetchWithRetry(`${API_BASE}/admin/activity?limit=${limit}`, { headers })
       if (!res.ok) throw new Error('Failed to fetch activity')
       return res.json()
     },
     adminToggleUserStatus: async (userId) => {
-      const res = await fetch(`${API_BASE}/admin/users/${userId}/toggle-status`, {
+      const res = await fetchWithTimeout(`${API_BASE}/admin/users/${userId}/toggle-status`, {
         method: 'POST',
         headers
       })
@@ -799,7 +925,7 @@ function createApi(token) {
       return res.json()
     },
     adminMakeAdmin: async (userId) => {
-      const res = await fetch(`${API_BASE}/admin/users/${userId}/make-admin`, {
+      const res = await fetchWithTimeout(`${API_BASE}/admin/users/${userId}/make-admin`, {
         method: 'POST',
         headers
       })
@@ -807,7 +933,7 @@ function createApi(token) {
       return res.json()
     },
     adminRemoveAdmin: async (userId) => {
-      const res = await fetch(`${API_BASE}/admin/users/${userId}/remove-admin`, {
+      const res = await fetchWithTimeout(`${API_BASE}/admin/users/${userId}/remove-admin`, {
         method: 'POST',
         headers
       })
@@ -815,7 +941,7 @@ function createApi(token) {
       return res.json()
     },
     adminCheckStatus: async () => {
-      const res = await fetch(`${API_BASE}/admin/check`, { headers })
+      const res = await fetchWithRetry(`${API_BASE}/admin/check`, { headers })
       if (!res.ok) return { isAdmin: false }
       return res.json()
     }
@@ -853,6 +979,60 @@ const validateIndianPhone = (phone) => {
 const validateEmail = (email) => {
   if (!email) return true
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+// ============================================
+// CONNECTION STATUS INDICATOR
+// ============================================
+function ConnectionStatus() {
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const [showOffline, setShowOffline] = useState(false)
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true)
+      // Show "back online" message briefly
+      setShowOffline(true)
+      setTimeout(() => setShowOffline(false), 3000)
+    }
+    
+    const handleOffline = () => {
+      setIsOnline(false)
+      setShowOffline(true)
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
+  if (!showOffline) return null
+
+  return (
+    <div className={`fixed top-0 left-0 right-0 z-[9999] px-4 py-3 text-center text-sm font-medium transition-all ${
+      isOnline 
+        ? 'bg-green-500 text-white' 
+        : 'bg-red-500 text-white'
+    }`}>
+      <div className="flex items-center justify-center gap-2">
+        {isOnline ? (
+          <>
+            <Wifi size={16} />
+            <span>Back online</span>
+          </>
+        ) : (
+          <>
+            <WifiOff size={16} />
+            <span>No internet connection. Some features may not work.</span>
+          </>
+        )}
+      </div>
+    </div>
+  )
 }
 
 // ============================================
@@ -989,7 +1169,7 @@ function LoginPage({ onSwitchToRegister, onLoginSuccess, onForgotPassword }) {
         setError(response.message || 'Login failed. Please try again.')
       }
     } catch (err) {
-      setError('Unable to connect to server. Please try again.')
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -1137,7 +1317,7 @@ function RegisterPage({ onSwitchToLogin, onRegisterSuccess }) {
         setError(response.message || 'Registration failed. Please try again.')
       }
     } catch (err) {
-      setError('Unable to connect to server. Please try again.')
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -1356,7 +1536,7 @@ function OtpVerificationPage({ email, name, onVerificationSuccess, onBackToLogin
         inputRefs[0].current?.focus()
       }
     } catch (err) {
-      setError('Unable to verify OTP. Please try again.')
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -1379,7 +1559,7 @@ function OtpVerificationPage({ email, name, onVerificationSuccess, onBackToLogin
         setError(response.message || 'Failed to resend OTP')
       }
     } catch (err) {
-      setError('Unable to resend OTP. Please try again.')
+      setError(getErrorMessage(err))
     } finally {
       setResending(false)
     }
@@ -1503,7 +1683,7 @@ function ForgotPasswordPage({ onBackToLogin }) {
       await api.forgotPassword(email)
       setSent(true)
     } catch (err) {
-      setError('Unable to process request. Please try again.')
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -1644,7 +1824,7 @@ function ResetPasswordPage({ token, onBackToLogin, onSuccess }) {
         setError(result.error || 'Failed to reset password')
       }
     } catch (err) {
-      setError('Unable to reset password. Please try again.')
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -4125,6 +4305,7 @@ export default function App() {
   return (
     <AuthProvider>
       <LanguageContext.Provider value={{ language, setLanguage }}>
+        <ConnectionStatus />
         <AppContent page={page} setPage={setPage} resetToken={resetToken} setResetToken={setResetToken} />
       </LanguageContext.Provider>
     </AuthProvider>
