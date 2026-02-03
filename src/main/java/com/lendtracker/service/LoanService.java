@@ -369,11 +369,10 @@ public class LoanService {
     // Interest Calculator
     @Transactional(readOnly = true)
     public InterestCalculation calculateInterest(BigDecimal principal, Double interestRate, 
-            String frequency, Integer durationMonths) {
+            String frequency, Integer days) {
         
-        if (durationMonths == null || durationMonths <= 0) {
-            durationMonths = 12; // Default to 1 year
-        }
+        // Convert days to months (assuming 30 days per month)
+        Integer durationMonths = (days != null && days > 0) ? (int) Math.ceil(days / 30.0) : 12;
         
         double annualRate = interestRate / 100.0;
         BigDecimal yearlyInterest = principal.multiply(BigDecimal.valueOf(annualRate));

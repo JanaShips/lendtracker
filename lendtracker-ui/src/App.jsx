@@ -2729,32 +2729,32 @@ function InterestCalculatorPage({ api }) {
         </button>
 
         {calculation && (
-          <div className="mt-8 p-6 bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 rounded-xl animate-fade-in-up">
-            <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-              <TrendingUp size={20} className="text-emerald-400" />
+          <div className="mt-8 p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+            <h3 className="text-lg font-semibold mb-6 flex items-center gap-2 text-gray-900">
+              <TrendingUp size={20} className="text-[#1CC29F]" />
               {t.calculationResults}
             </h3>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="p-4 bg-white/5 rounded-xl">
-                <p className="text-sm text-gray-400 mb-1">{t.perPayment}</p>
-                <p className="text-2xl font-bold text-white">{formatCurrency(calculation.perPaymentInterest)}</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                <p className="text-sm text-gray-600 mb-1">{t.perPayment}</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(calculation.perPaymentInterest)}</p>
               </div>
-              <div className="p-4 bg-white/5 rounded-xl">
-                <p className="text-sm text-gray-400 mb-1">{t.monthlyInterest}</p>
-                <p className="text-2xl font-bold text-white">{formatCurrency(calculation.monthlyInterest)}</p>
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                <p className="text-sm text-gray-600 mb-1">{t.monthlyInterest}</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(calculation.monthlyInterest)}</p>
               </div>
-              <div className="p-4 bg-white/5 rounded-xl">
-                <p className="text-sm text-gray-400 mb-1">{t.yearlyInterest}</p>
-                <p className="text-2xl font-bold text-amber-400">{formatCurrency(calculation.yearlyInterest)}</p>
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                <p className="text-sm text-gray-600 mb-1">{t.yearlyInterest}</p>
+                <p className="text-2xl font-bold text-[#1CC29F]">{formatCurrency(calculation.yearlyInterest)}</p>
               </div>
-              <div className="p-4 bg-white/5 rounded-xl">
-                <p className="text-sm text-gray-400 mb-1">{t.totalInterest}</p>
-                <p className="text-2xl font-bold text-emerald-400">{formatCurrency(calculation.totalInterest)}</p>
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                <p className="text-sm text-gray-600 mb-1">{t.totalInterest}</p>
+                <p className="text-2xl font-bold text-[#1CC29F]">{formatCurrency(calculation.totalInterest)}</p>
               </div>
             </div>
-            <div className="mt-6 p-4 bg-emerald-500/20 rounded-xl">
-              <p className="text-sm text-gray-300 mb-1">{t.totalReturn}</p>
-              <p className="text-3xl font-bold text-emerald-400">{formatCurrency(calculation.totalAmount)}</p>
+            <div className="mt-6 p-5 bg-gradient-to-r from-[#E8F8F5] to-[#D0F0E8] rounded-lg border border-[#1CC29F]/20">
+              <p className="text-sm text-gray-700 mb-1 font-medium">{t.totalReturn}</p>
+              <p className="text-3xl font-bold text-[#1CC29F]">{formatCurrency(calculation.totalAmount)}</p>
             </div>
           </div>
         )}
