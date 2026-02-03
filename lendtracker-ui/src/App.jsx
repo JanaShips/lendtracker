@@ -4038,8 +4038,8 @@ function DashboardApp() {
                 {[
                   { key: 'dashboard', icon: LayoutDashboard, label: t.dashboard },
                   { key: 'loans', icon: List, label: t.loans },
-                  { key: 'calculator', icon: Calculator, label: t.calculator },
                   { key: 'history', icon: History, label: t.history },
+                  { key: 'calculator', icon: Calculator, label: t.calculator },
                   ...(user?.role === 'ADMIN' ? [{ key: 'admin', icon: ShieldCheck, label: 'Admin' }] : [])
                 ].map(({ key, icon: Icon, label }) => (
                   <button
@@ -4105,8 +4105,8 @@ function DashboardApp() {
             {[
               { key: 'dashboard', icon: LayoutDashboard, label: t.dashboard },
               { key: 'loans', icon: List, label: t.loans },
-              { key: 'calculator', icon: Calculator, label: t.calculator },
               { key: 'history', icon: History, label: t.history },
+              { key: 'calculator', icon: Calculator, label: t.calculator },
               ...(user?.role === 'ADMIN' ? [{ key: 'admin', icon: ShieldCheck, label: 'Admin' }] : [])
             ].map(({ key, icon: Icon, label }) => (
               <button
