@@ -2674,10 +2674,27 @@ function InterestCalculatorPage({ api }) {
   const handleCalculate = async () => {
     if (!formData.principal || !formData.interestRate) return
     setLoading(true)
+    setCalculation(null)
     try {
       const days = parseInt(formData.durationMonths) * 30
-      const result = await api.calculateInterest(parseFloat(formData.principal), parseFloat(formData.interestRate), formData.frequency, days)
-      setCalculation(result)
+      if (isNaN(days) || days <= 0) {
+        throw new Error('Invalid duration')
+      }
+      const principal = parseFloat(formData.principal)
+      const rate = parseFloat(formData.interestRate)
+      if (isNaN(principal) || principal <= 0 || isNaN(rate) || rate < 0) {
+        throw new Error('Invalid input values')
+      }
+      const result = await api.calculateInterest(principal, rate, formData.frequency, days)
+      if (result && result.perPaymentInterest !== undefined) {
+        setCalculation(result)
+      } else {
+        throw new Error('Invalid response from server')
+      }
+    } catch (error) {
+      console.error('Calculation error:', error)
+      setCalculation(null)
+      // Don't show error to user, just prevent crash
     } finally {
       setLoading(false)
     }
@@ -2687,7 +2704,7 @@ function InterestCalculatorPage({ api }) {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="glass rounded-2xl p-8">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-8">
         <div className="flex items-center gap-3 mb-8">
           <div className="p-3 bg-gradient-to-br from-emerald-500/20 to-blue-500/20 rounded-xl">
             <Calculator size={28} className="text-emerald-400" />
@@ -2698,7 +2715,7 @@ function InterestCalculatorPage({ api }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.principal} *</label>
             <input type="number" value={formData.principal} onChange={(e) => setFormData(prev => ({ ...prev, principal: e.target.value }))} className={inputClass} placeholder="100000" />
@@ -2720,7 +2737,7 @@ function InterestCalculatorPage({ api }) {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.duration}</label>
-            <input type="number" value={formData.durationMonths} onChange={(e) => setFormData(prev => ({ ...prev, durationMonths: e.target.value }))} className={inputClass} placeholder="12" />
+            <input type="number" value={formData.durationMonths} onChange={(e) => setFormData(prev => ({ ...prev, durationMonths: e.target.value }))} className={inputClass} placeholder="12" min="1" />
           </div>
         </div>
 
@@ -2729,32 +2746,32 @@ function InterestCalculatorPage({ api }) {
         </button>
 
         {calculation && (
-          <div className="mt-8 p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-            <h3 className="text-lg font-semibold mb-6 flex items-center gap-2 text-gray-900">
+          <div className="mt-8 p-4 sm:p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+            <h3 className="text-lg font-semibold mb-4 sm:mb-6 flex items-center gap-2 text-gray-900">
               <TrendingUp size={20} className="text-[#1CC29F]" />
               {t.calculationResults}
             </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                <p className="text-sm text-gray-600 mb-1">{t.perPayment}</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(calculation.perPaymentInterest)}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-100">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1.5 whitespace-nowrap">{t.perPayment}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 break-words">{formatCurrency(calculation.perPaymentInterest)}</p>
               </div>
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                <p className="text-sm text-gray-600 mb-1">{t.monthlyInterest}</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(calculation.monthlyInterest)}</p>
+              <div className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-100">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1.5 whitespace-nowrap">{t.monthlyInterest}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 break-words">{formatCurrency(calculation.monthlyInterest)}</p>
               </div>
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                <p className="text-sm text-gray-600 mb-1">{t.yearlyInterest}</p>
-                <p className="text-2xl font-bold text-[#1CC29F]">{formatCurrency(calculation.yearlyInterest)}</p>
+              <div className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-100">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1.5 whitespace-nowrap">{t.yearlyInterest}</p>
+                <p className="text-xl sm:text-2xl font-bold text-[#1CC29F] break-words">{formatCurrency(calculation.yearlyInterest)}</p>
               </div>
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                <p className="text-sm text-gray-600 mb-1">{t.totalInterest}</p>
-                <p className="text-2xl font-bold text-[#1CC29F]">{formatCurrency(calculation.totalInterest)}</p>
+              <div className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-100">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1.5 whitespace-nowrap">{t.totalInterest}</p>
+                <p className="text-xl sm:text-2xl font-bold text-[#1CC29F] break-words">{formatCurrency(calculation.totalInterest)}</p>
               </div>
             </div>
-            <div className="mt-6 p-5 bg-gradient-to-r from-[#E8F8F5] to-[#D0F0E8] rounded-lg border border-[#1CC29F]/20">
-              <p className="text-sm text-gray-700 mb-1 font-medium">{t.totalReturn}</p>
-              <p className="text-3xl font-bold text-[#1CC29F]">{formatCurrency(calculation.totalAmount)}</p>
+            <div className="mt-4 sm:mt-6 p-4 sm:p-5 bg-gradient-to-r from-[#E8F8F5] to-[#D0F0E8] rounded-lg border border-[#1CC29F]/20">
+              <p className="text-xs sm:text-sm text-gray-700 mb-1.5 font-medium whitespace-nowrap">{t.totalReturn}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-[#1CC29F] break-words">{formatCurrency(calculation.totalAmount)}</p>
             </div>
           </div>
         )}
