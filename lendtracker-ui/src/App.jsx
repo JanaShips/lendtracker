@@ -4044,7 +4044,7 @@ function DashboardApp() {
           </div>
           
           {/* Mobile Navigation */}
-          <div className="md:hidden border-t border-gray-100 px-4 py-2 flex gap-1 overflow-x-auto">
+          <div className="md:hidden border-t border-gray-100 px-4 py-2 flex gap-1 items-center overflow-x-auto">
             {[
               { key: 'dashboard', icon: LayoutDashboard, label: t.dashboard },
               { key: 'loans', icon: List, label: t.loans },
@@ -4065,6 +4065,13 @@ function DashboardApp() {
                 <span>{label}</span>
               </button>
             ))}
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-[#1CC29F] hover:bg-[#16A085] text-white rounded-lg text-xs font-medium whitespace-nowrap transition-all"
+            >
+              <Plus size={14} />
+              <span>{t.addLoan}</span>
+            </button>
           </div>
         </header>
 
@@ -4097,6 +4104,15 @@ function DashboardApp() {
         <Modal isOpen={isModalOpen || !!editingLoan} onClose={() => { setIsModalOpen(false); setEditingLoan(null) }} title={editingLoan ? t.editLoan : t.addNewLoan}>
           <LoanForm loan={editingLoan} onSubmit={editingLoan ? handleUpdateLoan : handleCreateLoan} onCancel={() => { setIsModalOpen(false); setEditingLoan(null) }} />
         </Modal>
+
+        {/* Floating Action Button for Mobile */}
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-[#1CC29F] hover:bg-[#16A085] text-white rounded-full shadow-lg flex items-center justify-center z-50 transition-all active:scale-95"
+          aria-label={t.addLoan}
+        >
+          <Plus size={28} />
+        </button>
       </div>
     </LanguageContext.Provider>
   )

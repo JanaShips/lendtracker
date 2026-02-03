@@ -7,9 +7,10 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     iosScheme: 'https',
-    // For development, you can use your local server
-    // url: 'http://localhost:5173',
-    // cleartext: true
+    // Load from hosted URL for OTA updates
+    // Replace with your Vercel URL after deployment
+    url: 'https://lendtracker.vercel.app',
+    // url: 'http://localhost:5173', // For local development
   },
   plugins: {
     SplashScreen: {
