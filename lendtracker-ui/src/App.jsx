@@ -1,4 +1,5 @@
 import React, { useState, useEffect, createContext, useContext } from 'react'
+import { App as CapacitorApp } from '@capacitor/app'
 import { 
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, 
   ResponsiveContainer 
@@ -1895,39 +1896,37 @@ function LoanForm({ loan, onSubmit, onCancel }) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.phone}</label>
-            <input
-              type="tel"
-              name="borrowerPhone"
-              value={formData.borrowerPhone}
-              onChange={handleChange}
-              className={errors.borrowerPhone ? inputErrorClass : inputClass}
-              placeholder="+91 98765 43210"
-            />
-            {errors.borrowerPhone && (
-              <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
-                <AlertCircle size={12} /> {errors.borrowerPhone}
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.email}</label>
-            <input
-              type="email"
-              name="borrowerEmail"
-              value={formData.borrowerEmail}
-              onChange={handleChange}
-              className={errors.borrowerEmail ? inputErrorClass : inputClass}
-              placeholder="name@example.com"
-            />
-            {errors.borrowerEmail && (
-              <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
-                <AlertCircle size={12} /> {errors.borrowerEmail}
-              </p>
-            )}
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t.phone}</label>
+          <input
+            type="tel"
+            name="borrowerPhone"
+            value={formData.borrowerPhone}
+            onChange={handleChange}
+            className={errors.borrowerPhone ? inputErrorClass : inputClass}
+            placeholder="+91 98765 43210"
+          />
+          {errors.borrowerPhone && (
+            <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
+              <AlertCircle size={12} /> {errors.borrowerPhone}
+            </p>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t.email}</label>
+          <input
+            type="email"
+            name="borrowerEmail"
+            value={formData.borrowerEmail}
+            onChange={handleChange}
+            className={errors.borrowerEmail ? inputErrorClass : inputClass}
+            placeholder="name@example.com"
+          />
+          {errors.borrowerEmail && (
+            <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
+              <AlertCircle size={12} /> {errors.borrowerEmail}
+            </p>
+          )}
         </div>
       </div>
 
@@ -1968,7 +1967,7 @@ function LoanForm({ loan, onSubmit, onCancel }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.dateLent} *</label>
             <input
@@ -1985,7 +1984,7 @@ function LoanForm({ loan, onSubmit, onCancel }) {
             <input
               type="date"
               name="dueDate"
-              value={formData.dueDate}
+              value={formData.dueDate || ''}
               onChange={handleChange}
               className={inputClass}
               min={formData.lendDate}
@@ -2102,44 +2101,46 @@ function PaymentModal({ isOpen, onClose, loan, onPayment, type }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={type === 'interest' ? t.recordInterestReceived : t.recordPrincipalReceived}>
       <form onSubmit={handleSubmit} className="space-y-4">
-          <p className="text-gray-400 mb-4">
-            {t.recordingPaymentFrom} <span className="text-white font-medium">{loan.borrowerName}</span>
+          <p className="text-gray-600 mb-4">
+            {t.recordingPaymentFrom} <span className="text-gray-900 font-medium">{loan.borrowerName}</span>
           </p>
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">{t.amount} *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t.amount} *</label>
           <input
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-emerald-500/50 text-white"
+            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:border-[#1CC29F] focus:bg-white focus:outline-none transition-all text-gray-900 placeholder-gray-400"
             required
             min="0.01"
             step="0.01"
+            placeholder="0.00"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">{t.paymentDate}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t.paymentDate}</label>
           <input
             type="date"
             value={paymentDate}
             onChange={(e) => setPaymentDate(e.target.value)}
-            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white"
+            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:border-[#1CC29F] focus:bg-white focus:outline-none transition-all text-gray-900"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">{t.paymentNotes}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t.paymentNotes}</label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white"
-            rows={2}
+            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:border-[#1CC29F] focus:bg-white focus:outline-none transition-all text-gray-900 placeholder-gray-400"
+            rows={3}
+            placeholder="Add any notes..."
           />
         </div>
         <div className="flex gap-3 pt-2">
-          <button type="button" onClick={onClose} className="flex-1 px-6 py-3 bg-white/5 rounded-xl font-medium">
+          <button type="button" onClick={onClose} className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-all">
             {t.cancel}
           </button>
-          <button type="submit" className="flex-1 px-6 py-3 bg-[#1CC29F] hover:bg-[#16A085] text-white rounded-lg font-medium">
+          <button type="submit" className="flex-1 px-6 py-3 bg-[#1CC29F] hover:bg-[#16A085] text-white rounded-lg font-medium transition-all">
             {t.recordReceived}
           </button>
         </div>
@@ -3963,6 +3964,33 @@ function DashboardApp() {
   useEffect(() => {
     fetchData()
   }, [token])
+
+  // Handle Android back button
+  useEffect(() => {
+    const handleBackButton = async () => {
+      // If modal is open, close it instead of exiting
+      if (isModalOpen || editingLoan) {
+        setIsModalOpen(false)
+        setEditingLoan(null)
+        return
+      }
+      // If not on dashboard, go to dashboard
+      if (activeTab !== 'dashboard') {
+        setActiveTab('dashboard')
+        return
+      }
+      // Otherwise, allow default behavior (exit app)
+      await App.exitApp()
+    }
+
+    // Register back button listener
+    CapacitorApp.addListener('backButton', handleBackButton)
+
+    // Cleanup
+    return () => {
+      CapacitorApp.removeAllListeners()
+    }
+  }, [isModalOpen, editingLoan, activeTab])
 
   const handleCreateLoan = async (loanData) => {
     try {
