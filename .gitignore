@@ -42,6 +42,10 @@ Thumbs.db
 !production.env
 !env.example
 
+# Application properties with secrets (if you create a local override)
+application-local.properties
+application-secrets.properties
+
 # ============================================
 # Node / Frontend
 # ============================================
