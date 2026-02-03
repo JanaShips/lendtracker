@@ -104,6 +104,8 @@ const translations = {
     noDataAvailable: 'No data available',
     borrowerName: 'Borrower Name',
     borrowerNamePlaceholder: 'Who did you lend money to?',
+    borrowerDetails: 'Borrower Details',
+    loanDetails: 'Loan Details',
     phone: 'Phone',
     email: 'Email',
     amountLent: 'Amount Lent',
@@ -1863,114 +1865,136 @@ function LoanForm({ loan, onSubmit, onCancel }) {
     })
   }
 
-  const inputClass = "w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:border-[#1CC29F] transition-all text-gray-900 placeholder-gray-400"
-  const inputErrorClass = "w-full px-4 py-3 bg-white border border-red-300 rounded-lg focus:border-red-500 transition-all text-gray-900 placeholder-gray-400"
+  const inputClass = "w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:border-[#1CC29F] focus:bg-white focus:outline-none transition-all text-gray-900 placeholder-gray-400 text-base"
+  const inputErrorClass = "w-full px-4 py-3 bg-red-50 border border-red-300 rounded-lg focus:border-red-500 focus:bg-white focus:outline-none transition-all text-gray-900 placeholder-gray-400 text-base"
 
   const statusOptions = [
-    { value: 'ACTIVE', label: t.active, icon: '🟢', desc: 'Loan is ongoing' },
-    { value: 'CLOSED', label: t.closed, icon: '⚪', desc: 'Fully repaid' },
-    { value: 'DEFAULTED', label: t.defaulted, icon: '🔴', desc: 'Payment stopped' }
+    { value: 'ACTIVE', label: t.active, icon: '🟢', color: 'emerald' },
+    { value: 'CLOSED', label: t.closed, icon: '⚪', color: 'gray' },
+    { value: 'DEFAULTED', label: t.defaulted, icon: '🔴', color: 'rose' }
   ]
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">{t.borrowerName} *</label>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Borrower Section - Splitwise Style */}
+      <div className="space-y-4">
+        <div className="pb-3 border-b border-gray-200">
+          <h3 className="text-base font-semibold text-gray-900">{t.borrowerDetails}</h3>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t.borrowerName} *</label>
           <input
             type="text"
             name="borrowerName"
             value={formData.borrowerName}
             onChange={handleChange}
             className={inputClass}
-            placeholder={t.borrowerNamePlaceholder}
+            placeholder="Enter borrower name"
             required
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">{t.phone}</label>
-          <input
-            type="tel"
-            name="borrowerPhone"
-            value={formData.borrowerPhone}
-            onChange={handleChange}
-            className={errors.borrowerPhone ? inputErrorClass : inputClass}
-            placeholder="+91 98765 43210"
-          />
-          {errors.borrowerPhone && (
-            <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
-              <AlertCircle size={12} /> {errors.borrowerPhone}
-            </p>
-          )}
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t.phone}</label>
+            <input
+              type="tel"
+              name="borrowerPhone"
+              value={formData.borrowerPhone}
+              onChange={handleChange}
+              className={errors.borrowerPhone ? inputErrorClass : inputClass}
+              placeholder="+91 98765 43210"
+            />
+            {errors.borrowerPhone && (
+              <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                <AlertCircle size={12} /> {errors.borrowerPhone}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t.email}</label>
+            <input
+              type="email"
+              name="borrowerEmail"
+              value={formData.borrowerEmail}
+              onChange={handleChange}
+              className={errors.borrowerEmail ? inputErrorClass : inputClass}
+              placeholder="name@example.com"
+            />
+            {errors.borrowerEmail && (
+              <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                <AlertCircle size={12} /> {errors.borrowerEmail}
+              </p>
+            )}
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">{t.email}</label>
-          <input
-            type="email"
-            name="borrowerEmail"
-            value={formData.borrowerEmail}
-            onChange={handleChange}
-            className={errors.borrowerEmail ? inputErrorClass : inputClass}
-            placeholder="name@example.com"
-          />
-          {errors.borrowerEmail && (
-            <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
-              <AlertCircle size={12} /> {errors.borrowerEmail}
-            </p>
-          )}
+      </div>
+
+      {/* Loan Details Section */}
+      <div className="space-y-4">
+        <div className="pb-3 border-b border-gray-200">
+          <h3 className="text-base font-semibold text-gray-900">{t.loanDetails}</h3>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">{t.amountLent} (₹) *</label>
-          <input
-            type="number"
-            name="principalAmount"
-            value={formData.principalAmount}
-            onChange={handleChange}
-            className={inputClass}
-            placeholder="1,00,000"
-            required
-            min="100"
-          />
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t.amountLent} (₹) *</label>
+            <input
+              type="number"
+              name="principalAmount"
+              value={formData.principalAmount}
+              onChange={handleChange}
+              className={inputClass}
+              placeholder="1,00,000"
+              required
+              min="100"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t.interestRate} (%) *</label>
+            <input
+              type="number"
+              name="interestRate"
+              value={formData.interestRate}
+              onChange={handleChange}
+              className={inputClass}
+              placeholder="12"
+              required
+              min="0"
+              max="100"
+              step="0.5"
+            />
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">{t.interestRate} *</label>
-          <input
-            type="number"
-            name="interestRate"
-            value={formData.interestRate}
-            onChange={handleChange}
-            className={inputClass}
-            placeholder="12"
-            required
-            min="0"
-            max="100"
-            step="0.5"
-          />
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t.dateLent} *</label>
+            <input
+              type="date"
+              name="lendDate"
+              value={formData.lendDate}
+              onChange={handleChange}
+              className={inputClass}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t.dueDate}</label>
+            <input
+              type="date"
+              name="dueDate"
+              value={formData.dueDate}
+              onChange={handleChange}
+              className={inputClass}
+              min={formData.lendDate}
+            />
+          </div>
         </div>
+
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">{t.dateLent} *</label>
-          <input
-            type="date"
-            name="lendDate"
-            value={formData.lendDate}
-            onChange={handleChange}
-            className={inputClass}
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">{t.dueDate}</label>
-          <input
-            type="date"
-            name="dueDate"
-            value={formData.dueDate}
-            onChange={handleChange}
-            className={inputClass}
-            min={formData.lendDate}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">{t.interestFrequency} *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t.interestFrequency} *</label>
           <select
             name="interestFrequency"
             value={formData.interestFrequency}
@@ -1985,48 +2009,61 @@ function LoanForm({ loan, onSubmit, onCancel }) {
             <option value="YEARLY">{t.yearly}</option>
           </select>
         </div>
-        <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">{t.status}</label>
-          <div className="grid grid-cols-3 gap-3">
-            {statusOptions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, status: option.value }))}
-                className={`p-3 rounded-xl border-2 transition-all text-left ${
-                  formData.status === option.value
-                    ? option.value === 'ACTIVE' 
-                      ? 'border-emerald-500 bg-emerald-500/10'
-                      : option.value === 'CLOSED'
-                      ? 'border-gray-500 bg-gray-500/10'
-                      : 'border-rose-500 bg-rose-500/10'
-                    : 'border-white/10 bg-white/5 hover:bg-white/10'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span>{option.icon}</span>
-                  <span className={`font-medium ${formData.status === option.value ? 'text-white' : 'text-gray-400'}`}>
-                    {option.label}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">{option.desc}</p>
-              </button>
-            ))}
-          </div>
+      </div>
+
+      {/* Status Section - Vertical Layout */}
+      <div className="space-y-4">
+        <div className="pb-3 border-b border-gray-200">
+          <h3 className="text-base font-semibold text-gray-900">{t.status}</h3>
         </div>
-        <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">{t.notes}</label>
-          <textarea
-            name="notes"
-            value={formData.notes}
-            onChange={handleChange}
-            className={inputClass}
-            placeholder={t.notesPlaceholder}
-            rows={2}
-          />
+        <div className="space-y-2">
+          {statusOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, status: option.value }))}
+              className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                formData.status === option.value
+                  ? option.color === 'emerald' 
+                    ? 'border-[#1CC29F] bg-[#E8F8F5]'
+                    : option.color === 'gray'
+                    ? 'border-gray-400 bg-gray-100'
+                    : 'border-red-400 bg-red-50'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl">{option.icon}</span>
+                <span className={`font-medium text-sm ${
+                  formData.status === option.value 
+                    ? option.color === 'emerald' ? 'text-[#1CC29F]' 
+                    : option.color === 'gray' ? 'text-gray-700' 
+                    : 'text-red-600'
+                    : 'text-gray-700'
+                }`}>
+                  {option.label}
+                </span>
+              </div>
+            </button>
+          ))}
         </div>
       </div>
-      <div className="flex gap-3 pt-4">
+
+      {/* Notes Section */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t.notes}</label>
+        <textarea
+          name="notes"
+          value={formData.notes}
+          onChange={handleChange}
+          className={inputClass}
+          placeholder="Add any additional notes..."
+          rows={3}
+        />
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex gap-3 pt-2">
         <button
           type="button"
           onClick={onCancel}
@@ -2646,7 +2683,7 @@ function InterestCalculatorPage({ api }) {
     }
   }
 
-  const inputClass = "w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
+  const inputClass = "w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:border-[#1CC29F] focus:outline-none transition-all text-gray-900 placeholder-gray-400"
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -2663,15 +2700,15 @@ function InterestCalculatorPage({ api }) {
 
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1.5">{t.principal} *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t.principal} *</label>
             <input type="number" value={formData.principal} onChange={(e) => setFormData(prev => ({ ...prev, principal: e.target.value }))} className={inputClass} placeholder="100000" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1.5">{t.interestRate} *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t.interestRate} *</label>
             <input type="number" value={formData.interestRate} onChange={(e) => setFormData(prev => ({ ...prev, interestRate: e.target.value }))} className={inputClass} placeholder="12" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1.5">{t.interestFrequency}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t.interestFrequency}</label>
             <select value={formData.frequency} onChange={(e) => setFormData(prev => ({ ...prev, frequency: e.target.value }))} className={inputClass}>
               <option value="DAILY">{t.daily}</option>
               <option value="WEEKLY">{t.weekly}</option>
@@ -2682,7 +2719,7 @@ function InterestCalculatorPage({ api }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1.5">{t.duration}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t.duration}</label>
             <input type="number" value={formData.durationMonths} onChange={(e) => setFormData(prev => ({ ...prev, durationMonths: e.target.value }))} className={inputClass} placeholder="12" />
           </div>
         </div>
@@ -3975,12 +4012,12 @@ function DashboardApp() {
               <button onClick={goToDashboard} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
                 <div className="w-9 h-9 bg-[#1CC29F] rounded-lg flex items-center justify-center">
                   <IndianRupee className="text-white" size={20} />
-        </div>
-                <span className="text-xl font-bold text-gray-900">{t.appName}</span>
+                </div>
+                <span className="text-xl font-bold text-gray-900 hidden sm:inline">{t.appName}</span>
               </button>
 
               {/* Navigation */}
-              <nav className="hidden md:flex items-center gap-1">
+              <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
                 {[
                   { key: 'dashboard', icon: LayoutDashboard, label: t.dashboard },
                   { key: 'loans', icon: List, label: t.loans },
@@ -4005,36 +4042,39 @@ function DashboardApp() {
                 
               {/* Right Actions */}
               <div className="flex items-center gap-2">
-                {/* Language Dropdown */}
+                {/* Language Dropdown - Compact */}
                 <div className="relative">
                   <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="appearance-none bg-gray-50 border border-gray-200 rounded-lg pl-8 pr-8 py-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-100 focus:outline-none focus:border-[#1CC29F]"
+                    className="appearance-none bg-gray-50 border border-gray-200 rounded-lg pl-7 pr-6 py-2 text-xs text-gray-700 cursor-pointer hover:bg-gray-100 focus:outline-none focus:border-[#1CC29F]"
                   >
-                    <option value="en">🇺🇸 English</option>
-                    <option value="te">🇮🇳 తెలుగు</option>
-                    <option value="hi">🇮🇳 हिंदी</option>
+                    <option value="en">🇺🇸 EN</option>
+                    <option value="te">🇮🇳 TE</option>
+                    <option value="hi">🇮🇳 HI</option>
                   </select>
-                  <Globe size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                  <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  <Globe size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                 </div>
+                {/* Settings Button */}
                 <button
                   onClick={() => setActiveTab('settings')}
                   className={`p-2 rounded-lg transition-all ${activeTab === 'settings' ? 'bg-[#E8F8F5] text-[#1CC29F]' : 'text-gray-600 hover:bg-gray-100'}`}
+                  title="Settings"
                 >
-                  <Settings size={20} />
+                  <Settings size={18} />
                 </button>
+                {/* Add Loan Button - Desktop */}
                 <button
                   onClick={() => setIsModalOpen(true)} 
-                  className="flex items-center gap-2 px-4 py-2 bg-[#1CC29F] hover:bg-[#16A085] text-white rounded-lg text-sm font-medium transition-all"
+                  className="hidden md:flex items-center gap-2 px-4 py-2 bg-[#1CC29F] hover:bg-[#16A085] text-white rounded-lg text-sm font-medium transition-all"
                 >
                   <Plus size={18} />
-                  <span className="hidden sm:inline">{t.addLoan}</span>
+                  <span>{t.addLoan}</span>
                 </button>
+                {/* Logout Button */}
                 <button
                   onClick={logout} 
-                  className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-all"
+                  className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                   title={t.logout}
                 >
                   <LogOut size={18} />
@@ -4105,14 +4145,16 @@ function DashboardApp() {
           <LoanForm loan={editingLoan} onSubmit={editingLoan ? handleUpdateLoan : handleCreateLoan} onCancel={() => { setIsModalOpen(false); setEditingLoan(null) }} />
         </Modal>
 
-        {/* Floating Action Button for Mobile */}
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-[#1CC29F] hover:bg-[#16A085] text-white rounded-full shadow-lg flex items-center justify-center z-50 transition-all active:scale-95"
-          aria-label={t.addLoan}
-        >
-          <Plus size={28} />
-        </button>
+        {/* Floating Action Button for Mobile - Hide when modal is open */}
+        {!(isModalOpen || editingLoan) && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-[#1CC29F] hover:bg-[#16A085] text-white rounded-full shadow-lg flex items-center justify-center z-50 transition-all active:scale-95"
+            aria-label={t.addLoan}
+          >
+            <Plus size={28} />
+          </button>
+        )}
       </div>
     </LanguageContext.Provider>
   )
