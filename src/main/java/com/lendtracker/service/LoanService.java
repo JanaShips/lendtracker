@@ -251,8 +251,11 @@ public class LoanService {
     private BigDecimal calculateTotalMonthlyInterest(List<Loan> loans) {
         BigDecimal total = BigDecimal.ZERO;
         for (Loan loan : loans) {
-            BigDecimal monthlyInterest = calculateMonthlyInterest(loan);
-            total = total.add(monthlyInterest);
+            // Only include loans with MONTHLY frequency in monthly interest calculation
+            if (loan.getInterestFrequency() == Loan.InterestFrequency.MONTHLY) {
+                BigDecimal monthlyInterest = calculateMonthlyInterest(loan);
+                total = total.add(monthlyInterest);
+            }
         }
         return total.setScale(2, RoundingMode.HALF_UP);
     }

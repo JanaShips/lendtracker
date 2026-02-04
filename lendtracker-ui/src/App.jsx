@@ -110,7 +110,11 @@ const translations = {
     phone: 'Phone',
     email: 'Email',
     amountLent: 'Amount Lent',
-    interestRate: 'Interest Rate (%)',
+    interestRate: 'Interest Rate',
+    interestRateBondPaper: 'Interest Rate (Rs per 100 per month)',
+    percentagePerAnnum: 'Percentage per Annum',
+    bondPaperRate: 'Bond Paper (Rs/100/month)',
+    bondPaperHint: 'Example: 2 means ₹2 per ₹100 per month (24% per annum)',
     dateLent: 'Date Lent',
     dueDate: 'Due Date',
     interestFrequency: 'Interest Frequency',
@@ -274,7 +278,11 @@ const translations = {
     phone: 'ఫోన్',
     email: 'ఇమెయిల్',
     amountLent: 'ఇచ్చిన మొత్తం',
-    interestRate: 'వడ్డీ రేటు (%)',
+    interestRate: 'వడ్డీ రేటు',
+    interestRateBondPaper: 'వడ్డీ రేటు (₹100కి ₹/నెల)',
+    percentagePerAnnum: 'సంవత్సరానికి శాతం',
+    bondPaperRate: 'బాండ్ పేపర్ (₹100కి ₹/నెల)',
+    bondPaperHint: 'ఉదాహరణ: 2 అంటే ₹100కి ₹2 నెలకు (సంవత్సరానికి 24%)',
     dateLent: 'ఇచ్చిన తేదీ',
     dueDate: 'గడువు తేదీ',
     interestFrequency: 'వడ్డీ తరచుదనం',
@@ -436,7 +444,11 @@ const translations = {
     phone: 'फोन',
     email: 'ईमेल',
     amountLent: 'उधार दी गई राशि',
-    interestRate: 'ब्याज दर (%)',
+    interestRate: 'ब्याज दर',
+    interestRateBondPaper: 'ब्याज दर (₹100 प्रति ₹/महीना)',
+    percentagePerAnnum: 'प्रति वर्ष प्रतिशत',
+    bondPaperRate: 'बॉन्ड पेपर (₹100 प्रति ₹/महीना)',
+    bondPaperHint: 'उदाहरण: 2 का मतलब ₹100 पर ₹2 प्रति महीना (24% प्रति वर्ष)',
     dateLent: 'उधार की तारीख',
     dueDate: 'नियत तारीख',
     interestFrequency: 'ब्याज आवृत्ति',
@@ -1830,6 +1842,7 @@ function LoanForm({ loan, onSubmit, onCancel }) {
     borrowerEmail: '',
     principalAmount: '',
     interestRate: '',
+    interestRateType: 'PERCENTAGE', // PERCENTAGE or BOND_PAPER
     lendDate: new Date().toISOString().split('T')[0],
     dueDate: '',
     interestFrequency: 'MONTHLY',
@@ -1857,10 +1870,18 @@ function LoanForm({ loan, onSubmit, onCancel }) {
       setErrors(newErrors)
       return
     }
+    
+    // Convert bond paper rate to percentage if needed
+    let interestRate = parseFloat(formData.interestRate)
+    if (formData.interestRateType === 'BOND_PAPER') {
+      // Bond paper: 2 rs per 100 rs per month = 2% per month = 24% per annum
+      interestRate = interestRate * 12 // Convert monthly rate to annual percentage
+    }
+    
     onSubmit({
       ...formData,
       principalAmount: parseFloat(formData.principalAmount),
-      interestRate: parseFloat(formData.interestRate),
+      interestRate: interestRate,
       totalInterestReceived: formData.totalInterestReceived || 0,
       totalPrincipalReceived: formData.totalPrincipalReceived || 0
     })
@@ -1951,19 +1972,37 @@ function LoanForm({ loan, onSubmit, onCancel }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.interestRate} (%) *</label>
-            <input
-              type="number"
-              name="interestRate"
-              value={formData.interestRate}
-              onChange={handleChange}
-              className={inputClass}
-              placeholder="12"
-              required
-              min="0"
-              max="100"
-              step="0.5"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {formData.interestRateType === 'BOND_PAPER' 
+                ? t.interestRateBondPaper 
+                : t.interestRate} {formData.interestRateType === 'PERCENTAGE' && '(%)'} *
+            </label>
+            <div className="flex gap-2">
+              <select
+                name="interestRateType"
+                value={formData.interestRateType}
+                onChange={handleChange}
+                className="px-3 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:border-[#1CC29F] focus:outline-none text-sm text-gray-700"
+              >
+                <option value="PERCENTAGE">{t.percentagePerAnnum}</option>
+                <option value="BOND_PAPER">{t.bondPaperRate}</option>
+              </select>
+              <input
+                type="number"
+                name="interestRate"
+                value={formData.interestRate}
+                onChange={handleChange}
+                className={`flex-1 ${inputClass}`}
+                placeholder={formData.interestRateType === 'BOND_PAPER' ? "2" : "12"}
+                required
+                min="0"
+                max={formData.interestRateType === 'BOND_PAPER' ? "10" : "100"}
+                step="0.1"
+              />
+            </div>
+            {formData.interestRateType === 'BOND_PAPER' && (
+              <p className="mt-1 text-xs text-gray-500">{t.bondPaperHint}</p>
+            )}
           </div>
         </div>
 
@@ -2668,7 +2707,16 @@ function LoansList({ loans, onEdit, onDelete, onPayment, api }) {
 // Interest Calculator
 function InterestCalculatorPage({ api }) {
   const t = useTranslation()
-  const [formData, setFormData] = useState({ principal: '', interestRate: '', frequency: 'MONTHLY', durationMonths: '12' })
+  const [formData, setFormData] = useState({ 
+    principal: '', 
+    interestRate: '', 
+    interestRateType: 'PERCENTAGE',
+    frequency: 'MONTHLY', 
+    calculationType: 'DURATION', // DURATION or DATE_RANGE
+    durationMonths: '12',
+    fromDate: new Date().toISOString().split('T')[0],
+    toDate: ''
+  })
   const [calculation, setCalculation] = useState(null)
   const [loading, setLoading] = useState(false)
 
@@ -2677,15 +2725,37 @@ function InterestCalculatorPage({ api }) {
     setLoading(true)
     setCalculation(null)
     try {
-      const days = parseInt(formData.durationMonths) * 30
+      let days
+      if (formData.calculationType === 'DATE_RANGE') {
+        if (!formData.fromDate || !formData.toDate) {
+          throw new Error('Please select both dates')
+        }
+        const from = new Date(formData.fromDate)
+        const to = new Date(formData.toDate)
+        if (to < from) {
+          throw new Error('To date must be after from date')
+        }
+        days = Math.ceil((to - from) / (1000 * 60 * 60 * 24))
+      } else {
+        days = parseInt(formData.durationMonths) * 30
+      }
+      
       if (isNaN(days) || days <= 0) {
         throw new Error('Invalid duration')
       }
+      
       const principal = parseFloat(formData.principal)
-      const rate = parseFloat(formData.interestRate)
+      let rate = parseFloat(formData.interestRate)
+      
+      // Convert bond paper rate to percentage
+      if (formData.interestRateType === 'BOND_PAPER') {
+        rate = rate * 12 // Convert monthly rate to annual percentage
+      }
+      
       if (isNaN(principal) || principal <= 0 || isNaN(rate) || rate < 0) {
         throw new Error('Invalid input values')
       }
+      
       const result = await api.calculateInterest(principal, rate, formData.frequency, days)
       if (result && result.perPaymentInterest !== undefined) {
         setCalculation(result)
@@ -2716,15 +2786,44 @@ function InterestCalculatorPage({ api }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.principal} *</label>
-            <input type="number" value={formData.principal} onChange={(e) => setFormData(prev => ({ ...prev, principal: e.target.value }))} className={inputClass} placeholder="100000" />
+        <div className="space-y-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t.principal} *</label>
+              <input type="number" value={formData.principal} onChange={(e) => setFormData(prev => ({ ...prev, principal: e.target.value }))} className={inputClass} placeholder="100000" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {formData.interestRateType === 'BOND_PAPER' 
+                  ? t.interestRateBondPaper 
+                  : t.interestRate} {formData.interestRateType === 'PERCENTAGE' && '(%)'} *
+              </label>
+              <div className="flex gap-2">
+                <select
+                  value={formData.interestRateType}
+                  onChange={(e) => setFormData(prev => ({ ...prev, interestRateType: e.target.value }))}
+                  className="px-3 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:border-[#1CC29F] focus:outline-none text-sm text-gray-700"
+                >
+                  <option value="PERCENTAGE">{t.percentagePerAnnum}</option>
+                  <option value="BOND_PAPER">{t.bondPaperRate}</option>
+                </select>
+                <input
+                  type="number"
+                  value={formData.interestRate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, interestRate: e.target.value }))}
+                  className={`flex-1 ${inputClass}`}
+                  placeholder={formData.interestRateType === 'BOND_PAPER' ? "2" : "12"}
+                  min="0"
+                  max={formData.interestRateType === 'BOND_PAPER' ? "10" : "100"}
+                  step="0.1"
+                />
+              </div>
+              {formData.interestRateType === 'BOND_PAPER' && (
+                <p className="mt-1 text-xs text-gray-500">{t.bondPaperHint}</p>
+              )}
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.interestRate} *</label>
-            <input type="number" value={formData.interestRate} onChange={(e) => setFormData(prev => ({ ...prev, interestRate: e.target.value }))} className={inputClass} placeholder="12" />
-          </div>
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.interestFrequency}</label>
             <select value={formData.frequency} onChange={(e) => setFormData(prev => ({ ...prev, frequency: e.target.value }))} className={inputClass}>
@@ -2736,10 +2835,48 @@ function InterestCalculatorPage({ api }) {
               <option value="YEARLY">{t.yearly}</option>
             </select>
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.duration}</label>
-            <input type="number" value={formData.durationMonths} onChange={(e) => setFormData(prev => ({ ...prev, durationMonths: e.target.value }))} className={inputClass} placeholder="12" min="1" />
+            <label className="block text-sm font-medium text-gray-700 mb-2">Calculation Type</label>
+            <select 
+              value={formData.calculationType} 
+              onChange={(e) => setFormData(prev => ({ ...prev, calculationType: e.target.value }))} 
+              className={inputClass}
+            >
+              <option value="DURATION">By Duration (Months)</option>
+              <option value="DATE_RANGE">By Date Range</option>
+            </select>
           </div>
+
+          {formData.calculationType === 'DURATION' ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t.duration}</label>
+              <input type="number" value={formData.durationMonths} onChange={(e) => setFormData(prev => ({ ...prev, durationMonths: e.target.value }))} className={inputClass} placeholder="12" min="1" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">From Date *</label>
+                <input 
+                  type="date" 
+                  value={formData.fromDate} 
+                  onChange={(e) => setFormData(prev => ({ ...prev, fromDate: e.target.value }))} 
+                  className={inputClass}
+                  max={formData.toDate || undefined}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">To Date *</label>
+                <input 
+                  type="date" 
+                  value={formData.toDate} 
+                  onChange={(e) => setFormData(prev => ({ ...prev, toDate: e.target.value }))} 
+                  className={inputClass}
+                  min={formData.fromDate || undefined}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <button onClick={handleCalculate} disabled={loading || !formData.principal || !formData.interestRate} className="w-full py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-50 rounded-xl font-medium flex items-center justify-center gap-2">
