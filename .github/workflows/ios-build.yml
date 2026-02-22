@@ -1,0 +1,111 @@
+name: iOS Build
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'lendtracker-ui/**'
+      - '.github/workflows/ios-build.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'lendtracker-ui/**'
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+
+jobs:
+  build-ios:
+    name: Build iOS App
+    runs-on: macos-14
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: lendtracker-ui
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: lendtracker-ui/package-lock.json
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build web assets
+        run: npm run build
+
+      - name: Generate iOS icons
+        run: npm run ios:icons
+
+      - name: Sync Capacitor iOS
+        run: npx cap sync ios
+
+      - name: Setup Ruby (for CocoaPods)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: false
+
+      - name: Install CocoaPods
+        run: |
+          gem install cocoapods
+          cd ios/App
+          pod install
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+
+      - name: Build iOS (Debug - Simulator)
+        if: github.event.inputs.build_type != 'release'
+        run: |
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Build iOS (Release - Archive)
+        if: github.event.inputs.build_type == 'release'
+        run: |
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath build/LendWise.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            archive
+
+      - name: Upload build artifact
+        if: github.event.inputs.build_type == 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: LendWise-iOS-Archive
+          path: lendtracker-ui/build/LendWise.xcarchive
+          retention-days: 14
+
+      - name: Build summary
+        if: always()
+        run: |
+          echo "## iOS Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build type**: ${{ github.event.inputs.build_type || 'debug' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Node.js**: $(node --version)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Xcode**: $(xcodebuild -version | head -1)" >> $GITHUB_STEP_SUMMARY
+          echo "- **CocoaPods**: $(pod --version)" >> $GITHUB_STEP_SUMMARY

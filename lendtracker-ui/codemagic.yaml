@@ -1,0 +1,123 @@
+workflows:
+  ios-build:
+    name: LendWise iOS Build
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+    environment:
+      node: 20
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install dependencies
+        script: |
+          cd lendtracker-ui
+          npm ci
+
+      - name: Build web assets
+        script: |
+          cd lendtracker-ui
+          npm run build
+
+      - name: Generate iOS icons
+        script: |
+          cd lendtracker-ui
+          npm run ios:icons
+
+      - name: Sync Capacitor iOS
+        script: |
+          cd lendtracker-ui
+          npx cap sync ios
+
+      - name: Install CocoaPods
+        script: |
+          cd lendtracker-ui/ios/App
+          pod install
+
+      - name: Set up code signing (App Store)
+        script: |
+          # Only needed for App Store / TestFlight builds
+          # Configure in Codemagic UI: Settings > Code signing > iOS
+          keychain initialize
+          app-store-connect fetch-signing-files "com.lendwise.app" --type IOS_APP_STORE --create
+          keychain add-certificates
+          xcode-project use-profiles
+        ignore_failure: true
+
+      - name: Build iOS app
+        script: |
+          cd lendtracker-ui
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath build/LendWise.xcarchive \
+            archive
+
+      - name: Export IPA
+        script: |
+          cd lendtracker-ui
+          xcodebuild -exportArchive \
+            -archivePath build/LendWise.xcarchive \
+            -exportPath build/ipa \
+            -exportOptionsPlist ios/App/exportOptions.plist
+        ignore_failure: true
+
+    artifacts:
+      - lendtracker-ui/build/**/*.xcarchive
+      - lendtracker-ui/build/ipa/*.ipa
+
+    publishing:
+      app_store_connect:
+        # Configure API key in Codemagic UI
+        # api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        # key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        # issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: false
+
+  ios-simulator:
+    name: LendWise iOS Simulator Build
+    max_build_duration: 20
+    instance_type: mac_mini_m2
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'main'
+          include: true
+    environment:
+      node: 20
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install dependencies
+        script: |
+          cd lendtracker-ui
+          npm ci
+
+      - name: Build web assets
+        script: |
+          cd lendtracker-ui
+          npm run build
+
+      - name: Sync Capacitor iOS
+        script: |
+          cd lendtracker-ui
+          npx cap sync ios
+
+      - name: Install CocoaPods
+        script: |
+          cd lendtracker-ui/ios/App
+          pod install
+
+      - name: Build for Simulator
+        script: |
+          cd lendtracker-ui
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
