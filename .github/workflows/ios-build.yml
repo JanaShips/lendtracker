@@ -81,6 +81,28 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
+      - name: Package simulator app for testing
+        if: github.event.inputs.build_type != 'release'
+        run: |
+          APP_PATH=$(find build -name "App.app" -type d | head -1)
+          if [ -n "$APP_PATH" ]; then
+            cd "$(dirname "$APP_PATH")"
+            zip -r "$GITHUB_WORKSPACE/lendtracker-ui/LendWise-Simulator.zip" "$(basename "$APP_PATH")"
+            echo "Packaged: LendWise-Simulator.zip"
+          else
+            echo "Warning: App.app not found in build directory"
+            find build -name "*.app" -type d || true
+          fi
+
+      - name: Upload simulator build
+        if: github.event.inputs.build_type != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: LendWise-iOS-Simulator
+          path: lendtracker-ui/LendWise-Simulator.zip
+          retention-days: 30
+          if-no-files-found: warn
+
       - name: Build iOS (Release - Archive)
         if: github.event.inputs.build_type == 'release'
         run: |
@@ -93,7 +115,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             archive
 
-      - name: Upload build artifact
+      - name: Upload release archive
         if: github.event.inputs.build_type == 'release'
         uses: actions/upload-artifact@v4
         with:
